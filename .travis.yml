@@ -3,17 +3,14 @@ dist: trusty
 
 language: crystal
 
-env: V8_VERSION=6.3.292.48.1
-
 matrix:
   include:
     - os: linux
       dist: trusty
       sudo: required
+      env: V8_VERSION=6.3.292.48.1
     - os: osx
       osx_image: xcode9.2
+      env: V8_VERSION=6.3.292.48.1
 
-os:
-  - linux
-  - osx
-
+install: ./travis/install.sh
