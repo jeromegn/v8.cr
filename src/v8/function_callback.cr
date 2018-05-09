@@ -11,19 +11,7 @@ module V8
     getter args : Slice(Value)
     getter length : LibC::Int
 
-    def initialize(ctx : Context, parsed : LibV8::ParsedFunctionCallbackInfo)
-      puts "sizeof parsed thing: #{sizeof(typeof(parsed))}"
-      # puts "this pointer: #{parsed.this}"
-      # @this = Value.new(ctx, parsed.this)
-      @length = parsed.length
-      puts "initial pointer: #{parsed.args}"
-      args = Slice.new(parsed.args, parsed.length.to_i)
-      @args = args.map_with_index do |ptr, i|
-        puts "arg #{i}"
-        p ptr
-        Value.new(ctx, ptr)
-      end
-      puts typeof(args), sizeof(typeof(args))
+    def initialize(@length : Int, @args : Slice(Value))
     end
 
   end

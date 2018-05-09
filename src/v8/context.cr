@@ -3,10 +3,18 @@ require "./object"
 module V8
   class Context
     @global : Object?
+    @@contexts = {} of String => Context
+
+    @id : String = Random.new.hex(4)
+    getter id
 
     def initialize(@iso : Isolate)
       @ptr = LibV8.v8_Isolate_NewContext(iso)
-      puts "init ctx"
+      @@contexts[@id] = self
+    end
+
+    def self.contexts
+      @@contexts
     end
 
     def global : Object

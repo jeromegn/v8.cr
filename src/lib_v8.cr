@@ -2,7 +2,7 @@ require "./v8/crystal_string"
 require "./v8/heap_statistics"
 require "./v8/value_error_pair"
 
-@[Link(ldflags: "#{__DIR__}/v8_c_bridge.o -lstdc++ -L#{__DIR__}/../libv8 -lv8_base -lv8_init -lv8_initializers -lv8_libbase -lv8_libplatform -lv8_libsampler -lv8_nosnapshot")]
+@[Link(ldflags: "#{__DIR__}/v8_c_bridge.cc -I#{__DIR__}/../include -fno-rtti -std=c++11 -lstdc++ -L#{__DIR__}/../libv8 -lv8_base -lv8_init -lv8_initializers -lv8_libbase -lv8_libplatform -lv8_libsampler -lv8_nosnapshot")]
 lib LibV8
   alias Char = LibC::Char
   alias StartupData = V8::CrystalString
@@ -31,7 +31,7 @@ lib LibV8
   fun v8_Value_Set(Context, PersistentValue, Char*, PersistentValue) : Error
   fun v8_Value_String(Context, PersistentValue) : V8::CrystalString
   fun v8_Value_IsFunction(Context, PersistentValue) : Bool
-  fun v8_Function_Call(Context, PersistentValue, this : PersistentValue, length : Int32, args : PersistentValue*) : V8::ValueErrorPair
+  fun v8_Function_Call(Context, fn : PersistentValue, this : PersistentValue, length : Int32, args : PersistentValue*) : V8::ValueErrorPair
 
   fun v8_Object_New(Context) : PersistentValue
 
@@ -41,7 +41,7 @@ lib LibV8
   # end
   type FunctionCallbackInfo = Void*
 
-  fun v8_FunctionTemplate_New(Context, callback : FunctionCallbackInfo->, Char*) : PersistentValue
+  fun v8_FunctionTemplate_New(Context, Char*, Char*) : PersistentValue
 
   struct ParsedFunctionCallbackInfo
     length : LibC::Int

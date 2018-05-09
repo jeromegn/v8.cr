@@ -10,11 +10,12 @@
 #include <sstream>
 #include <stdio.h>
 #include <iostream>
+#include <thread>
 
 #define ISOLATE_SCOPE(iso) \
   v8::Isolate* isolate = (iso);                                                               \
-  fprintf(stderr, "got isolate in ISOLATE_SCOPE\n"); \
   v8::Locker locker(isolate);                            /* Lock to current thread.        */ \
+  fprintf(stderr, "ISOLATE LOCKED!\n"); \
   v8::Isolate::Scope isolate_scope(isolate);             /* Assign isolate to this thread. */
 
 
@@ -141,8 +142,10 @@ std::string report_exception(v8::Isolate* isolate, v8::Local<v8::Context> ctx, v
   std::string exceptionStr = str(try_catch.Exception());
   ss << exceptionStr; // TODO(aroman) JSON-ify objects?
 
+  fprintf(stderr, "message is empty? %d\n", try_catch.Message().IsEmpty());
   if (!try_catch.Message().IsEmpty()) {
     if (!try_catch.Message()->GetScriptResourceName()->IsUndefined()) {
+      fprintf(stderr, "res name not undefined");
       ss << std::endl
          << "at " << str(try_catch.Message()->GetScriptResourceName());
 
@@ -271,98 +274,67 @@ ValueErrorPair v8_Context_Run(ContextPtr ctxptr, const char* code, const char* f
 	return res;
 }
 
-// void v8_FunctionTemplate_New(ContextPtr ctxptr, v8::FunctionCallback crystal_cb);
-PersistentValuePtr v8_FunctionTemplate_New(ContextPtr ctxptr, v8::FunctionCallback crystal_cb, char* id) {
+void crystal_callback(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+PersistentValuePtr v8_FunctionTemplate_New(ContextPtr ctxptr, const char* name, const char* id) {
   VALUE_SCOPE(ctxptr);
-  return new Value(isolate, v8::FunctionTemplate::New(isolate, crystal_cb, v8::String::NewFromUtf8(isolate, id))->GetFunction());
+  std::cout << "fn tpl thread " << std::this_thread::get_id() << "\n";
+  v8::Local<v8::FunctionTemplate> cb = v8::FunctionTemplate::New(
+    isolate,
+    crystal_callback,
+    v8::String::NewFromUtf8(isolate, id)
+  );
+  cb->SetClassName(v8::String::NewFromUtf8(isolate, name));
+  return new Value(isolate, cb->GetFunction());
 }
 
-typedef struct {
-  // PersistentValuePtr This;
-  int Length;
-  void** Args;
-} FunctionCallbackInfo;
+PersistentValuePtr __crystal_v8_callback_handler(String id, int argc, PersistentValuePtr* argv);
 
-FunctionCallbackInfo v8_FunctionCallbackInfo(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::Isolate* isolate = args.GetIsolate();
-  v8::HandleScope scope(isolate);
+void crystal_callback(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* iso = args.GetIsolate();
+  v8::HandleScope scope(iso);
+
+  std::string id = str(args.Data());
+
+  std::string src_file, src_func;
+  int line_number = 0, column = 0;
+  v8::Local<v8::StackTrace> trace(v8::StackTrace::CurrentStackTrace(iso, 1));
+  if (trace->GetFrameCount() == 1) {
+    v8::Local<v8::StackFrame> frame(trace->GetFrame(0));
+    src_file = str(frame->GetScriptName());
+    src_func = str(frame->GetFunctionName());
+    line_number = frame->GetLineNumber();
+    column = frame->GetColumn();
+  }
 
   int argc = args.Length();
-  void* argv[argc];
+  PersistentValuePtr argv[argc];
   for (int i = 0; i < argc; i++) {
-    std::cout << "to s: " << str(args[i]) << "\n";
-    argv[i] = new Value(isolate, args[i]);
+    argv[i] = new Value(iso, args[i]);
     fprintf(stderr, "pointer of arg %i is %p\n", i, argv[i]);
   }
   fprintf(stderr, "sizeof argv %lu\n", sizeof(argv));
 
-  // auto holder = new Value(isolate, args.Holder());
+  PersistentValuePtr result = __crystal_v8_callback_handler((String){id.data(), int(id.length())}, argc, argv);
 
-  // fprintf(stderr, "pointer of holder is %p\n", holder);
+  fprintf(stderr, "done with crystal cb\n");
 
-  FunctionCallbackInfo ret ={
-    // holder,
-    argc,
-    argv
-  };
+  if (result == nullptr) {
+    args.GetReturnValue().Set(v8::Undefined(iso));
+  } else {
+    args.GetReturnValue().Set(*static_cast<Value*>(result));
+  }
 
-  fprintf(stderr, "sizeof ret %lu\n", sizeof(ret));
-
-  return ret;
+  // if (result.error_msg.ptr != nullptr) {
+  //   v8::Local<v8::Value> err = v8::Exception::Error(
+  //     v8::String::NewFromUtf8(isolate, result.error_msg.ptr, v8::NewStringType::kNormal, result.error_msg.len).ToLocalChecked());
+  //   isolate->ThrowException(err);
+  // } else if (result.Value == NULL) {
+  //   args.GetReturnValue().Set(v8::Undefined(isolate));
+  // } else {
+  //   args.GetReturnValue().Set(*static_cast<Value*>(result.Value));
+  // }
 }
-
-String v8_FunctionCallbackInfo_Data(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  return str_to_cr_str(str(args.Data()));
-}
-
-// String v8_FunctionCallbackInfo_Data(const v8::FunctionCallbackInfo<v8::Value>& args) {
-//   return str_to_cr_str(str(args.Data()));
-// }
-
-// PersistentValuePtr v8_FunctionCallbackInfo_This(const v8::FunctionCallbackInfo<v8::Value>& args) {
-//   v8::Isolate* iso = args.GetIsolate();
-//   v8::HandleScope scope(iso);
-//   return new Value(iso, args.This());
-// }
-
-// PersistentValuePtr* v8_FunctionCallbackInfo_Args(const v8::FunctionCallbackInfo<v8::Value>& args) {
-//   v8::Isolate* iso = args.GetIsolate();
-//   v8::HandleScope scope(iso);
-//   int argc = args.Length();
-//   PersistentValuePtr argv[argc];
-//   for (int i = 0; i < argc; i++) {
-//     argv[i] = new Value(iso, args[i]);
-//   }
-//   return argv;
-// }
-
-// PersistentValuePtr fn_cb_info_arg
-
-// void crystal_callback(const v8::FunctionCallbackInfo<v8::Value>& args) {
-//   fprintf(stderr, "in c crystal cb");
-//   v8::Local<v8::Value> data = args.Data();
-//   if (data->IsExternal()) {
-//     void *cb = v8::External::Cast(*data)->Value();
-//     (*cb)(args);
-//   }
-// }
-
-
-// void crystal_callback(const v8::FunctionCallbackInfo<v8::Value>& args);
-
-// FunctionTemplatePtr v8_Context_RegisterCallback(
-//     ContextPtr ctxptr,
-//     const char* name,
-//     const char* id
-// ) {
-//   VALUE_SCOPE(ctxptr);
-
-//   v8::Local<v8::FunctionTemplate> cb =
-//     v8::FunctionTemplate::New(isolate, crystal_callback,
-//       v8::String::NewFromUtf8(isolate, id));
-//   cb->SetClassName(v8::String::NewFromUtf8(isolate, name));
-//   return new Value(isolate, cb->GetFunction());
-// }
 
 // void go_callback(const v8::FunctionCallbackInfo<v8::Value>& args) {
 //   v8::Isolate* iso = args.GetIsolate();
@@ -562,6 +534,9 @@ ValueErrorPair v8_Function_Call(ContextPtr ctxptr,
                              PersistentValuePtr selfptr,
                              int argc, PersistentValuePtr* argvptr) {
   VALUE_SCOPE(ctxptr);
+
+  std::cout << "thread " << std::this_thread::get_id() << "\n";
+
   fprintf(stderr, "call: got value scope\n");
   v8::TryCatch try_catch(isolate);
   try_catch.SetVerbose(false);
@@ -577,17 +552,20 @@ ValueErrorPair v8_Function_Call(ContextPtr ctxptr,
 
   v8::Local<v8::Value> self;
   if (selfptr == nullptr) {
-    self = ctx->Global();
+    fprintf(stderr, "call: self is null\n");
+    self = v8::Undefined(isolate);
   } else {
+    fprintf(stderr, "call: self is NOT null!\n");
     self = static_cast<Value*>(selfptr)->Get(isolate);
   }
   fprintf(stderr, "call: got this value\n");
 
   v8::Local<v8::Value>* argv = new v8::Local<v8::Value>[argc];
   for (int i = 0; i < argc; i++) {
+    fprintf(stderr, "call: trying to assign something\n");
     argv[i] = static_cast<Value*>(argvptr[i])->Get(isolate);
   }
-  fprintf(stderr, "call: made argv\n");
+  fprintf(stderr, "call: made argv length: %d %p %p\n", argc, argvptr, argv);
 
   v8::MaybeLocal<v8::Value> result = func->Call(ctx, self, argc, argv);
   fprintf(stderr, "call: got maybe res\n");
@@ -595,6 +573,7 @@ ValueErrorPair v8_Function_Call(ContextPtr ctxptr,
   delete[] argv;
 
   if (result.IsEmpty()) {
+    fprintf(stderr, "call: is empty :(\n");
     return (ValueErrorPair){nullptr, str_to_cr_str(report_exception(isolate, ctx, try_catch))};
   }
 
@@ -661,7 +640,7 @@ void v8_Value_Release(ContextPtr ctxptr, PersistentValuePtr valueptr) {
 
 String v8_Value_String(ContextPtr ctxptr, PersistentValuePtr valueptr) {
   VALUE_SCOPE(ctxptr);
-  // ISOLATE_SCOPE(static_cast<Context*>(ctxptr)->isolate);
+
   fprintf(stderr, "got my value scope, value %p\n", valueptr);
 
   v8::Local<v8::Value> value = static_cast<Value*>(valueptr)->Get(isolate);

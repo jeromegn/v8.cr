@@ -11,7 +11,7 @@ module V8
 
     def error
       return nil if error_string.ptr.null?
-      Exception.new(error_string.to_s)
+      ::Exception.new(error_string.to_s)
     end
 
     def get_value(ctx : Context)

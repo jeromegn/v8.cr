@@ -7,9 +7,9 @@ module V8
       LibV8.v8_Value_IsFunction(@ctx, self)
     end
 
-    def call()
+    def call
       raise "not a function" if !function?
-      result = LibV8.v8_Function_Call(@ctx, self, nil, 0, nil)
+      result = LibV8.v8_Function_Call(@ctx, self, Object.new(@ctx), 0, [Object.new(@ctx).to_unsafe])
       raise result.error.not_nil! if result.error
       return result.get_value(@ctx)
     end

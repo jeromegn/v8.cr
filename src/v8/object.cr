@@ -2,8 +2,10 @@ require "./value"
 
 module V8
   class Object < Value
-    def initialize(@ctx : Context, ptr : LibV8::PersistentValue)
-      @ptr = ptr.null? ? LibV8.v8_Object_New(@ctx) : ptr
+    def initialize(@ctx : Context, @ptr : LibV8::PersistentValue)
+    end
+    def initialize(@ctx : Context)
+      @ptr = LibV8.v8_Object_New(@ctx)
     end
 
     def set(field : String, value : Value | CrystalFunction)
@@ -15,8 +17,8 @@ module V8
 
     def get(field : String)
       result = LibV8.v8_Value_Get(@ctx, self, field)
-      raise result.error if result.error
-      return result.value(@ctx)
+      raise result.error.not_nil! if result.error
+      return result.get_value(@ctx)
     end
   end
 end

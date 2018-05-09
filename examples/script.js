@@ -1,6 +1,8 @@
-const body = "hello world"
+const body = "hello world";
 
-addEventListener.call(null, "fetch", function (event) {
-  'blah';
-  event.respondWith(body)
-})
+log("whoop")
+
+log("got", addEventListener("fetch", function (event) {
+  // log("in fetch!");
+  return body;
+}));
