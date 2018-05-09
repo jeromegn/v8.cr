@@ -10,14 +10,12 @@
 #include <sstream>
 #include <stdio.h>
 #include <iostream>
-#include <thread>
 
 #define ISOLATE_SCOPE(iso) \
   v8::Isolate* isolate = (iso);                                                               \
   v8::Locker locker(isolate);                            /* Lock to current thread.        */ \
-  fprintf(stderr, "ISOLATE LOCKED!\n"); \
-  v8::Isolate::Scope isolate_scope(isolate);             /* Assign isolate to this thread. */
-
+  v8::Isolate::Scope isolate_scope(isolate);             /* Assign isolate to this thread. */ \
+  isolate->SetStackLimit(reinterpret_cast<uintptr_t>(__crystal_fiber_stack_bottom() - 48 * 1024));
 
 #define VALUE_SCOPE(ctxptr) \
   ISOLATE_SCOPE(static_cast<Context*>(ctxptr)->isolate)                                       \
@@ -25,6 +23,7 @@
   v8::Local<v8::Context> ctx(static_cast<Context*>(ctxptr)->ptr.Get(isolate));                \
   v8::Context::Scope context_scope(ctx);                 /* Scope to this context.         */
 
+extern "C" char* __crystal_fiber_stack_bottom();
 // extern "C" ValueErrorPair go_callback_handler(
 //     String id, CallerInfo info, int argc, ValueKindsPair* argv);
 
@@ -142,10 +141,10 @@ std::string report_exception(v8::Isolate* isolate, v8::Local<v8::Context> ctx, v
   std::string exceptionStr = str(try_catch.Exception());
   ss << exceptionStr; // TODO(aroman) JSON-ify objects?
 
-  fprintf(stderr, "message is empty? %d\n", try_catch.Message().IsEmpty());
+  //fprintf(stderr, "message is empty? %d\n", try_catch.Message().IsEmpty());
   if (!try_catch.Message().IsEmpty()) {
     if (!try_catch.Message()->GetScriptResourceName()->IsUndefined()) {
-      fprintf(stderr, "res name not undefined");
+      //fprintf(stderr, "res name not undefined");
       ss << std::endl
          << "at " << str(try_catch.Message()->GetScriptResourceName());
 
@@ -278,7 +277,6 @@ void crystal_callback(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 PersistentValuePtr v8_FunctionTemplate_New(ContextPtr ctxptr, const char* name, const char* id) {
   VALUE_SCOPE(ctxptr);
-  std::cout << "fn tpl thread " << std::this_thread::get_id() << "\n";
   v8::Local<v8::FunctionTemplate> cb = v8::FunctionTemplate::New(
     isolate,
     crystal_callback,
@@ -311,13 +309,13 @@ void crystal_callback(const v8::FunctionCallbackInfo<v8::Value>& args) {
   PersistentValuePtr argv[argc];
   for (int i = 0; i < argc; i++) {
     argv[i] = new Value(iso, args[i]);
-    fprintf(stderr, "pointer of arg %i is %p\n", i, argv[i]);
+    //fprintf(stderr, "pointer of arg %i is %p\n", i, argv[i]);
   }
-  fprintf(stderr, "sizeof argv %lu\n", sizeof(argv));
+  //fprintf(stderr, "sizeof argv %lu\n", sizeof(argv));
 
   PersistentValuePtr result = __crystal_v8_callback_handler((String){id.data(), int(id.length())}, argc, argv);
 
-  fprintf(stderr, "done with crystal cb\n");
+  //fprintf(stderr, "done with crystal cb\n");
 
   if (result == nullptr) {
     args.GetReturnValue().Set(v8::Undefined(iso));
@@ -387,7 +385,7 @@ PersistentValuePtr v8_Context_Global(ContextPtr ctxptr) {
 }
 
 void v8_Context_Release(ContextPtr ctxptr) {
-  fprintf(stderr, "RELEASING A VALUE NOW\n");
+  //fprintf(stderr, "RELEASING A VALUE NOW\n");
   if (ctxptr == nullptr) {
     return;
   }
@@ -535,50 +533,48 @@ ValueErrorPair v8_Function_Call(ContextPtr ctxptr,
                              int argc, PersistentValuePtr* argvptr) {
   VALUE_SCOPE(ctxptr);
 
-  std::cout << "thread " << std::this_thread::get_id() << "\n";
-
-  fprintf(stderr, "call: got value scope\n");
+  //fprintf(stderr, "call: got value scope\n");
   v8::TryCatch try_catch(isolate);
   try_catch.SetVerbose(false);
-  fprintf(stderr, "call: got try catch\n");
+  //fprintf(stderr, "call: got try catch\n");
 
   v8::Local<v8::Value> func_val = static_cast<Value*>(funcptr)->Get(isolate);
   if (!func_val->IsFunction()) {
     return (ValueErrorPair){nullptr, str_to_cr_str("Not a function")};
   }
-  fprintf(stderr, "call: got func val\n");
+  //fprintf(stderr, "call: got func val\n");
   v8::Local<v8::Function> func = v8::Local<v8::Function>::Cast(func_val);
-  fprintf(stderr, "call: got func\n");
+  //fprintf(stderr, "call: got func\n");
 
   v8::Local<v8::Value> self;
   if (selfptr == nullptr) {
-    fprintf(stderr, "call: self is null\n");
+    //fprintf(stderr, "call: self is null\n");
     self = v8::Undefined(isolate);
   } else {
-    fprintf(stderr, "call: self is NOT null!\n");
+    //fprintf(stderr, "call: self is NOT null!\n");
     self = static_cast<Value*>(selfptr)->Get(isolate);
   }
-  fprintf(stderr, "call: got this value\n");
+  //fprintf(stderr, "call: got this value\n");
 
   v8::Local<v8::Value>* argv = new v8::Local<v8::Value>[argc];
   for (int i = 0; i < argc; i++) {
-    fprintf(stderr, "call: trying to assign something\n");
+    //fprintf(stderr, "call: trying to assign something\n");
     argv[i] = static_cast<Value*>(argvptr[i])->Get(isolate);
   }
-  fprintf(stderr, "call: made argv length: %d %p %p\n", argc, argvptr, argv);
+  //fprintf(stderr, "call: made argv length: %d %p %p\n", argc, argvptr, argv);
 
   v8::MaybeLocal<v8::Value> result = func->Call(ctx, self, argc, argv);
-  fprintf(stderr, "call: got maybe res\n");
+  //fprintf(stderr, "call: got maybe res\n");
 
   delete[] argv;
 
   if (result.IsEmpty()) {
-    fprintf(stderr, "call: is empty :(\n");
+    //fprintf(stderr, "call: is empty :(\n");
     return (ValueErrorPair){nullptr, str_to_cr_str(report_exception(isolate, ctx, try_catch))};
   }
 
   v8::Local<v8::Value> value = result.ToLocalChecked();
-  fprintf(stderr, "call: value to local checked\n");
+  //fprintf(stderr, "call: value to local checked\n");
   return (ValueErrorPair){
     static_cast<PersistentValuePtr>(new Value(isolate, value)),
     nullptr
@@ -589,6 +585,12 @@ PersistentValuePtr v8_Object_New(ContextPtr ctxptr) {
   VALUE_SCOPE(ctxptr);
   v8::Local<v8::Object> obj = v8::Object::New(isolate);
   return new Value(isolate, obj);
+}
+
+PersistentValuePtr v8_String_New(ContextPtr ctxptr, const char* str) {
+  VALUE_SCOPE(ctxptr);
+  v8::Local<v8::String> v = v8::String::NewFromUtf8(isolate, str);
+  return new Value(isolate, v);
 }
 
 ValueTuple v8_Value_New(ContextPtr ctxptr,
@@ -641,10 +643,7 @@ void v8_Value_Release(ContextPtr ctxptr, PersistentValuePtr valueptr) {
 String v8_Value_String(ContextPtr ctxptr, PersistentValuePtr valueptr) {
   VALUE_SCOPE(ctxptr);
 
-  fprintf(stderr, "got my value scope, value %p\n", valueptr);
-
   v8::Local<v8::Value> value = static_cast<Value*>(valueptr)->Get(isolate);
-  fprintf(stderr, "got my value\n");
   return str_to_cr_str(value->ToString());
 }
 
@@ -709,9 +708,7 @@ unsigned char* v8_Value_Bytes(ContextPtr ctxptr, PersistentValuePtr valueptr, in
 
 bool v8_Value_IsFunction(ContextPtr ctxptr, PersistentValuePtr valueptr) {
   VALUE_SCOPE(ctxptr);
-  fprintf(stderr,"is func: got value scope, isolate: %p, ctx: %p, valueptr: %p\n", isolate, ctxptr, valueptr);
   v8::Local<v8::Value> value = static_cast<Value*>(valueptr)->Get(isolate);
-  fprintf(stderr,"is func: got value\n");
   return value->IsFunction();
 }
 

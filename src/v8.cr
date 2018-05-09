@@ -1,36 +1,29 @@
 require "./lib_v8"
 require "./v8/*"
 
-@[Extern]
-struct ErrorString
-  property ptr : LibC::Char*
-  property size : LibC::Int
-  def initialize(@ptr, @size)
+class Fiber
+  def get_stack_bottom
+    @stack_bottom
   end
 end
-
-@[Extern]
-struct ValueErrorPairC
-  property value : Void*
-  property error_msg : ErrorString
-  def initialize(@value, @error_msg)
-  end
+fun __crystal_fiber_stack_bottom : Void*
+  Fiber.current.get_stack_bottom
 end
 
 fun __crystal_v8_callback_handler(id : V8::CrystalString, argc : LibC::Int, argv : LibV8::PersistentValue*)
   ctx_id, fn_id = id.to_s.split(":")
 
-  puts "ctx id: #{ctx_id}, fn_id: #{fn_id}"
+  # puts "ctx id: #{ctx_id}, fn_id: #{fn_id}"
 
   ctx = V8::Context.contexts[ctx_id]?
   return if ctx.nil?
 
-  puts "ctx was not nil"
+  # puts "ctx was not nil"
 
   fn = V8::CrystalFunction.callbacks[fn_id]?
   return if fn.nil?
 
-  puts "fn was not nil"
+  # puts "fn was not nil"
 
   args = Slice.new(argv, argc).map do |ptr|
     V8::Value.new(ctx, ptr)

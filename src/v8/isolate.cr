@@ -1,5 +1,6 @@
 module V8
   class Isolate
+
     def initialize
       puts "initing iso"
       @ptr = LibV8.v8_Isolate_New(LibV8::StartupData.new("".to_unsafe, 0))

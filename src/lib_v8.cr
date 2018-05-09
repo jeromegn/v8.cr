@@ -34,6 +34,7 @@ lib LibV8
   fun v8_Function_Call(Context, fn : PersistentValue, this : PersistentValue, length : Int32, args : PersistentValue*) : V8::ValueErrorPair
 
   fun v8_Object_New(Context) : PersistentValue
+  fun v8_String_New(Context, Char*) : PersistentValue
 
   # struct FunctionCallbackInfo
   #   # _implicit_args : 

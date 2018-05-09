@@ -8,7 +8,7 @@ module V8
     end
     
     def to_s
-      String.new(ptr, size)
+      ::String.new(ptr, size)
     end
   end
 end
