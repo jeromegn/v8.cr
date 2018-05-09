@@ -1,5 +1,15 @@
 require "./v8/*"
 
+class Fiber
+  def get_stack
+    @stack
+  end
+end
+
+fun __crystal_current_fiber_stack : Void*
+  Fiber.current.get_stack
+end
+
 fun __crystal_v8_callback_handler(id : V8::CrystalString, argc : LibC::Int, argv : LibV8::PersistentValue*)
   ctx_id, fn_id = id.to_s.split(":")
 

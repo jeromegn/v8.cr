@@ -2,7 +2,6 @@ require "../src/v8"
 require "http/server"
 
 puts LibV8::VERSION
-
 iso = V8::Isolate.new
 ctx = V8::Context.new(iso)
 

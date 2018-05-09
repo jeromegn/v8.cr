@@ -6,8 +6,6 @@
 
 : "${V8_VERSION:?V8_VERSION must be set}"
 
-[[ $TRAVIS_OS_NAME="linux" ]] && GEM_ARCH="x86_64-linux" || GEM_ARCH="universal-darwin-16"
-
 V8_DIR=${HOME}/libv8gem
 mkdir -p ${V8_DIR}
 pushd ${V8_DIR}

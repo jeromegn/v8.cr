@@ -15,7 +15,7 @@
   v8::Isolate* isolate = (iso);                                                               \
   v8::Locker locker(isolate);                            /* Lock to current thread.        */ \
   v8::Isolate::Scope isolate_scope(isolate);             /* Assign isolate to this thread. */ \
-  isolate->SetStackLimit(reinterpret_cast<uintptr_t>(static_cast<char*>(_fiber_get_stack_top()) - 8 * 1024 * 1024));
+  isolate->SetStackLimit(reinterpret_cast<uintptr_t>(static_cast<char*>(__crystal_current_fiber_stack()) + 4 * 1024));
 
 #define VALUE_SCOPE(ctxptr) \
   ISOLATE_SCOPE(static_cast<Context*>(ctxptr)->isolate)                                       \
@@ -23,7 +23,7 @@
   v8::Local<v8::Context> ctx(static_cast<Context*>(ctxptr)->ptr.Get(isolate));                \
   v8::Context::Scope context_scope(ctx);                 /* Scope to this context.         */
 
-extern "C" void* _fiber_get_stack_top();
+extern "C" void* __crystal_current_fiber_stack();
 // extern "C" ValueErrorPair go_callback_handler(
 //     String id, CallerInfo info, int argc, ValueKindsPair* argv);
 
