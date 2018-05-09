@@ -13,4 +13,4 @@ matrix:
       osx_image: xcode9.2
       env: V8_VERSION=6.3.292.48.1
 
-install: ./travis/install.sh
+install: .travis/install.sh
