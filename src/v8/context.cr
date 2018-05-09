@@ -1,8 +1,8 @@
 require "./value"
 require "./object"
+
 module V8
   class Context
-    @global : Object?
     @@contexts = {} of ::String => Context
 
     @id : ::String = Random.new.hex(4)
@@ -18,7 +18,7 @@ module V8
     end
 
     def global : Object
-      @global ||= Object.new(self, LibV8.v8_Context_Global(self))
+      Object.new(self, LibV8.v8_Context_Global(self))
     end
 
     def create_function(name : ::String, cb : FunctionCallback)
@@ -39,8 +39,8 @@ module V8
       @ptr
     end
 
-    # def finalize
-    #   release
-    # end
+    def finalize
+      release
+    end
   end
 end

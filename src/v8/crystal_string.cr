@@ -6,7 +6,7 @@ module V8
 
     def initialize(@ptr, @size)
     end
-    
+
     def to_s
       ::String.new(ptr, size)
     end

@@ -2,7 +2,7 @@ module V8
   class Value
     def initialize(@ctx : Context, @ptr : LibV8::PersistentValue)
     end
-  
+
     def function?
       LibV8.v8_Value_IsFunction(@ctx, self)
     end
@@ -26,8 +26,8 @@ module V8
       LibV8.v8_Value_Release(@ctx, self)
     end
 
-    # def finalize
-    #   release
-    # end
+    def finalize
+      release
+    end
   end
 end

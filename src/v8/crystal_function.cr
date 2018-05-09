@@ -1,4 +1,4 @@
-require "../lib_v8"
+require "./lib_v8"
 require "./function_callback"
 
 module V8
@@ -25,8 +25,8 @@ module V8
       @ptr
     end
 
-    # def finalize
-    #   release
-    # end
+    def finalize
+      release
+    end
   end
 end

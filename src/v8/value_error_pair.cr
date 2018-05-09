@@ -1,5 +1,6 @@
-require "../lib_v8"
+require "./lib_v8"
 require "./context"
+
 module V8
   @[Extern]
   struct ValueErrorPair
@@ -18,10 +19,5 @@ module V8
       return nil if value_ptr.null?
       Value.new(ctx, value_ptr)
     end
-
-    # def finalizer
-    #   LibV8.v8_Value_Release(nil, value_ptr)
-    #   LibC.free(error_string.ptr)
-    # end
   end
 end

@@ -1,0 +1,6 @@
+lib
+include
+libv8
+bin
+.vscode
+.shards

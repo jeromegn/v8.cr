@@ -1,0 +1,19 @@
+sudo: required
+dist: trusty
+
+language: crystal
+
+env: V8_VERSION=6.3.292.48.1
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      sudo: required
+    - os: osx
+      osx_image: xcode9.2
+
+os:
+  - linux
+  - osx
+

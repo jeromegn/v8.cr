@@ -21,6 +21,9 @@ retcb = global.get("cb")
 cb = retcb.not_nil!
 
 Benchmark.ips do |x|
+  x.report("create a context") {
+    iso.create_context
+  }
   x.report("get a value") {
     ctx.global.get("value")
   }
@@ -35,9 +38,9 @@ Benchmark.ips do |x|
       return nil
     end)
   }
-  # x.report("get heap statistics") {
-  #   iso.heap_statistics
-  # }
+  x.report("get heap statistics") {
+    iso.heap_statistics
+  }
   x.report("call a function") {
     fn.call
   }
