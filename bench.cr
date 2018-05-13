@@ -6,7 +6,7 @@ ctx = V8::Context.new(iso)
 
 global = ctx.global
 
-global.set "fn", V8::CrystalFunction.new(ctx, "fn", V8::FunctionCallback.new do |info|
+global.set "fn", V8::CrystalFunction.new(ctx, "fn", V8::FunctionCallback.new do
   return nil
 end)
 
@@ -34,7 +34,7 @@ Benchmark.ips do |x|
     V8::Object.new(ctx)
   }
   x.report("bind a function") {
-    V8::CrystalFunction.new(ctx, "", V8::FunctionCallback.new do |info|
+    V8::CrystalFunction.new(ctx, "", V8::FunctionCallback.new do
       return nil
     end)
   }
