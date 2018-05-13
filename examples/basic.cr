@@ -18,7 +18,6 @@ fn2 = V8::CrystalFunction.new(ctx, "blah", V8::FunctionCallback.new do |info|
   return nil
 end)
 
-
 # puts "fn function?", fn.function?
 
 global = ctx.global
@@ -29,7 +28,7 @@ global.set("cb2", fn2)
 
 p iso.heap_statistics
 
-20.times do |n|
+20.times do
   begin
     ctx.eval "cb('boom'); cb2(123, 456)"
   rescue ex : Exception
@@ -44,7 +43,7 @@ global.set("cb2", fn2)
 
 p iso.heap_statistics
 
-20.times do |n|
+20.times do
   begin
     ctx.eval "cb('boom'); cb2(123, 456)"
   rescue ex : Exception

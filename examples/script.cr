@@ -5,7 +5,7 @@ puts LibV8::VERSION
 iso = V8::Isolate.new
 ctx = V8::Context.new(iso)
 
-fetchFn = uninitialized V8::Value
+fetch_fn = uninitialized V8::Value
 
 logfn = V8::CrystalFunction.new(ctx, "log", V8::FunctionCallback.new do |info|
   puts "in log!"
@@ -18,7 +18,7 @@ cfn = V8::CrystalFunction.new(ctx, "addEventListener", V8::FunctionCallback.new 
   info.args.each do |a|
     puts "arg: '#{a.to_s}'"
   end
-  fetchFn = info.args[1]
+  fetch_fn = info.args[1]
   nil
 end)
 
@@ -39,7 +39,7 @@ end
 
 server = HTTP::Server.new(9090) do |context|
   begin
-    ret = fetchFn.not_nil!.call
+    ret = fetch_fn.not_nil!.call
     context.response.print(ret.to_s)
   rescue ex : Exception
     context.response.print("#{ex.message}\n#{ex.backtrace.join("\n")}")
